@@ -2,15 +2,19 @@
 
 /**
  * bst_find_min - Finds the node with the minimum value in a BST.
- * @root: The root node of the BST.
+ * @node: The root node of the BST.
  *
  * Return: A pointer to the node with the minimum value.
  */
-bst_t *bst_find_min(bst_t *root)
+bst_t *bst_inorder_successor(bst_t *node)
 {
-	while (root && root->left)
-		root = root->left;
-	return (root);
+	bst_t *current = node;
+
+	/* loop down to find the leftmost leaf */
+	while (current && current->left != NULL)
+		current = current->left;
+
+	return (current);
 }
 
 /**
@@ -22,18 +26,26 @@ bst_t *bst_find_min(bst_t *root)
  */
 bst_t *bst_remove(bst_t *root, int value)
 {
-	bst_t *min_right, *temp;
+	bst_t *temp;
 
 	if (root == NULL)
 		return (NULL);
 
+	/* If the value to be deleted is smaller than the root's value,
+	then it lies in left subtree */
 	if (value < root->n)
 		root->left = bst_remove(root->left, value);
+
+	/* If the value to be deleted is greater than the root's value,
+	then it lies in right subtree */
 	else if (value > root->n)
 		root->right = bst_remove(root->right, value);
+
+	/* if value is same as root's value, then This is the node
+	to be deleted */
 	else
 	{
-		/* Node with only one child or no child */
+		/* node with only one child or no child */
 		if (root->left == NULL)
 		{
 			temp = root->right;
@@ -47,10 +59,15 @@ bst_t *bst_remove(bst_t *root, int value)
 			return (temp);
 		}
 
-		/* Node with two children: get the (smallest in the right subtree) */
-		min_right = bst_find_min(root->right);
-		root->n = min_right->n;
-		root->right = bst_remove(root->right, min_right->n);
+		/* node with two children: Get the inorder successor
+		(smallest in the right subtree) */
+		temp = bst_inorder_successor(root->right);
+
+		/* Copy the inorder successor's content to this node */
+		root->n = temp->n;
+
+		/* Delete the inorder successor */
+		root->right = bst_remove(root->right, temp->n);
 	}
 	return (root);
 }
