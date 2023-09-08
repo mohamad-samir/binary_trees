@@ -1,71 +1,79 @@
-#include <stdlib.h>
 #include "binary_trees.h"
 
 /**
- * heapify_up - Helper function to maintain Max Heap property after insertion.
- * @new_node: The newly inserted node.
- *
- * Return: A pointer to the new_node if needed, NULL otherwise.
+ * heapify_down - restores the max heap property by sifting down the value
+ * @root: pointer to the root node of the heap
  */
-heap_t *heapify_up(heap_t *new_node)
+void heapify_down(heap_t *root)
 {
-	while (new_node->parent && new_node->n > new_node->parent->n)
+	heap_t *largest;
+	int value;
+
+	while (1)
 	{
-		int temp_value = new_node->n;
-		new_node->n = new_node->parent->n;
-		new_node->parent->n = temp_value;
+		if (!root->left)
+			break;
 
-		new_node = new_node->parent;
+		if (!root->right || root->left->n > root->right->n)
+			largest = root->left;
+		else
+			largest = root->right;
+
+		if (root->n > largest->n)
+			break;
+
+		value = root->n;
+		root->n = largest->n;
+		largest->n = value;
+
+		root = largest;
 	}
-
-	return (new_node);
 }
 
 /**
- * heap_insert - Inserts a value into a Max Binary Heap.
- * @root: A double pointer to the root node of the Heap.
- * @value: The value to store in the node to be inserted.
+ * heap_extract - extracts the root node of a Max Binary Heap
+ * @root: a double pointer to the root node of the heap
  *
- * Return: A pointer to the created node, or NULL on failure.
+ * Return: the value stored in the root node
+ *         0 on failure
  */
-heap_t *heap_insert(heap_t **root, int value)
+int heap_extract(heap_t **root)
 {
-	heap_t *new_node, *parent;
+	int value;
+	heap_t *node;
 
-	new_node = binary_tree_node(NULL, value);
-	if (!new_node)
-		return (NULL);
+	if (!root || !*root)
+		return (0);
 
-	if (!*root)
+	value = (*root)->n;
+	if (!(*root)->left && !(*root)->right)
 	{
-		*root = new_node;
-		return (new_node);
+		free(*root);
+		*root = NULL;
+		return (value);
 	}
 
-	parent = *root;
-
-	while (parent->left || parent->right)
+	node = *root;
+	while (node->left || node->right)
 	{
-		if (!parent->left || (parent->right && parent->left->n < parent->right->n))
+		if (!node->right || (node->left && node->left->n >= node->right->n))
 		{
-			parent = parent->right;
+			node->n = node->left->n;
+			node = node->left;
 		}
 		else
 		{
-			parent = parent->left;
+			node->n = node->right->n;
+			node = node->right;
 		}
 	}
 
-	if (!parent->left)
-	{
-		parent->left = new_node;
-	}
+	if (node->parent->left == node)
+		node->parent->left = NULL;
 	else
-	{
-		parent->right = new_node;
-	}
+		node->parent->right = NULL;
 
-	new_node->parent = parent;
-
-	return (heapify_up(new_node));
+	free(node);
+	heapify_down(*root);
+	return (value);
 }
