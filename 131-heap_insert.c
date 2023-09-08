@@ -1,135 +1,148 @@
 #include "binary_trees.h"
 
 /**
- * count_heap_nodes - Counts the number of nodes inside a tree
- * @root: Pointer to tree's root node
+ * height - measures the height of a tree
  *
- * Return: Number of tree nodes
+ * @tree: tree root
+ * Return: height
  */
-int count_heap_nodes(binary_tree_t *root)
+int height(const binary_tree_t *tree)
 {
-	if (!root)
-		return (0);
+	int left = 0;
+	int right = 0;
 
-	return (1 + count_heap_nodes(root->left) +
-		    count_heap_nodes(root->right));
+	if (tree == NULL)
+		return (-1);
+
+	left = height(tree->left);
+	right = height(tree->right);
+
+	if (left > right)
+		return (left + 1);
+
+	return (right + 1);
 }
 
+/**
+ * binary_tree_is_perfect - checks if a binary tree is perfect
+ *
+ * @tree: tree root
+ * Return: 1 if tree is perfect, 0 otherwise
+ */
+int binary_tree_is_perfect(const binary_tree_t *tree)
+{
+	if (tree && height(tree->left) == height(tree->right))
+	{
+		if (height(tree->left) == -1)
+			return (1);
+
+		if ((tree->left && !((tree->left)->left) && !((tree->left)->right))
+		    && (tree->right && !((tree->right)->left) && !((tree->right)->right)))
+			return (1);
+
+		if (tree && tree->left && tree->right)
+			return (binary_tree_is_perfect(tree->left) &&
+				binary_tree_is_perfect(tree->right));
+	}
+
+	return (0);
+}
 
 /**
- * bubble_down - Puts a node value in a correct position in the heap
- * @parent: Pointer to heap's node
+ * swap - swaps nodes when child is greater than parent
+ *
+ * @arg_node: parent node
+ * @arg_child: child node
+ * Return: no return
  */
-void bubble_down(heap_t *parent)
+void swap(heap_t **arg_node, heap_t **arg_child)
 {
-	int temp;
-	heap_t *max_child = NULL;
+	heap_t *node, *child, *node_child, *node_left, *node_right, *parent;
+	int left_right;
 
-	if (!parent)
-		return;
-
-	while (parent && parent->left)
+	node = *arg_node, child = *arg_child;
+	if (child->n > node->n)
 	{
-		max_child = parent->left;
-
-		if (parent->right && parent->right->n > parent->left->n)
-			max_child = parent->right;
-
-		if (max_child->n > parent->n)
+		if (child->left)
+			child->left->parent = node;
+		if (child->right)
+			child->right->parent = node;
+		if (node->left == child)
+			node_child = node->right, left_right = 0;
+		else
+			node_child = node->left, left_right = 1;
+		node_left = child->left, node_right = child->right;
+		if (left_right == 0)
 		{
-			temp = parent->n;
-			parent->n = max_child->n;
-			max_child->n = temp;
+			child->right = node_child;
+			if (node_child)
+				node_child->parent = child;
+			child->left = node;
 		}
-
-		parent = max_child;
+		else
+		{
+			child->left = node_child;
+			if (node_child)
+				node_child->parent = child;
+			child->right = node;
+		}
+		if (node->parent)
+		{
+			if (node->parent->left == node)
+				node->parent->left = child;
+			else
+				node->parent->right = child;
+		}
+		parent = node->parent, child->parent = parent;
+		node->parent = child, node->left = node_left;
+		node->right = node_right, *arg_node = child;
 	}
 }
 
-
 /**
- * get_parent - Finds the parent node for a ceratin node
- * @root: Pointer to heap's node
- * @index: Index of the current node
- * @pind: Index been searched
- *
- * Return: Pointer to heap's node
+ * heap_insert - function that inserts a value in Max Binary Heap
+ * @value: value to be inserted
+ * @root: tree root
+ * Return: pointer to the created node, or NULL on failure.
  */
-heap_t *get_parent(heap_t *root, int index, int pind)
+heap_t *heap_insert(heap_t **root, int value)
 {
-	heap_t *left = NULL, *right = NULL;
+	heap_t *new_node;
 
-	if (!root || index > pind)
-		return (NULL);
+	if (*root == NULL)
+	{
+		*root = binary_tree_node(NULL, value);
+		return (*root);
+	}
 
-	if (index == pind)
-		return (root);
+	if (binary_tree_is_perfect(*root) || !binary_tree_is_perfect((*root)->left))
+	{
+		if ((*root)->left)
+		{
+			new_node = heap_insert(&((*root)->left), value);
+			swap(root, &((*root)->left));
+			return (new_node);
+		}
+		else
+		{
+			new_node = (*root)->left = binary_tree_node(*root, value);
+			swap(root, &((*root)->left));
+			return (new_node);
+		}
+	}
 
-	left = get_parent(root->left, index * 2 + 1, pind);
-	if (left)
-		return (left);
-
-	right = get_parent(root->right, index * 2 + 2, pind);
-	if (right)
-		return (right);
+	if ((*root)->right)
+	{
+		new_node = heap_insert(&((*root)->right), value);
+		swap(root, (&(*root)->right));
+		return (new_node);
+	}
+	else
+	{
+		new_node = (*root)->right = binary_tree_node(*root, value);
+		swap(root, &((*root)->right));
+		return (new_node);
+	}
 
 	return (NULL);
-}
-
-
-/**
- * remove_last_node - Removes the last node of a heap
- * @root: Doublepointer to heap's root node
- * @parent: Pointer to parent node from which to remove the last node
- */
-void remove_last_node(heap_t **root, heap_t *parent)
-{
-	if (parent == *root && !parent->left)
-	{
-		free(*root);
-		*root = NULL;
-
-		return;
-	}
-
-	if (parent->right)
-	{
-		(*root)->n = parent->right->n;
-		free(parent->right);
-		parent->right = NULL;
-	}
-	else if (parent->left)
-	{
-		(*root)->n = parent->left->n;
-		free(parent->left);
-		parent->left = NULL;
-	}
-
-	bubble_down(*root);
-}
-
-
-/**
- * heap_extract - Extracts the max value of a heap
- * @root: Double pointer to heap's root node
- *
- * Return: Heap's max value
- */
-int heap_extract(heap_t **root)
-{
-	int nodes, pind = 0, max_val = 0;
-	heap_t *parent;
-
-	if (!root || !(*root))
-		return (0);
-
-	max_val = (*root)->n;
-	nodes = count_heap_nodes(*root);
-
-	pind = (nodes - 2) / 2;
-	parent = get_parent(*root, 0, pind);
-
-	remove_last_node(root, parent);
-
-	return (max_val);
 }
